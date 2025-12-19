@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NeuralCore: Code Generation Module</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #0a0a1a 0%, #151530 100%);
+            color: #00ff88;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            overflow: hidden;
+            height: 100vh;
+        }
+        
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        
+        .header {
+            background: rgba(17, 17, 42, 0.95);
+            padding: 15px 20px;
+            border-bottom: 1px solid #00ffaa;
+            box-shadow: 0 0 20px rgba(0, 255, 170, 0.1);
+            backdrop-filter: blur(10px);
+            flex-shrink: 0;
+        }
+        
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .logo-text {
+            color: #00ffaa;
+            font-size: 1.4em;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+        
+        .logo-dot {
+            width: 8px;
+            height: 8px;
+            background: #00ffaa;
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.3; }
+        }
+        
+        .controls {
+            display: flex;
+            gap: 20px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .control-label {
+            color: #00ffaa;
+            font-size: 0.9em;
+            font-weight: bold;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        input[type="range"] {
+            width: 120px;
+            height: 6px;
+            background: #222244;
+            border-radius: 3px;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 16px;
+            height: 16px;
+            background: #00ffaa;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid #0a0a1a;
+        }
+        
+        .time-display {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 8px 15px;
+            border-radius: 20px;
+            border: 1px solid #00ffaa;
+            font-size: 0.9em;
+            color: #00ffaa;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .button {
+            background: linear-gradient(135deg, #00aaff 0%, #0088cc 100%);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            font-family: inherit;
+            transition: all 0.3s;
+            box-shadow: 0 4px 15px rgba(0, 170, 255, 0.2);
+        }
+        
+        .button:hover {
+            background: linear-gradient(135deg, #00ffaa 0%, #00aaff 100%);
+            transform: translateY(-1px);
+            box-shadow: 0 6px 20px rgba(0, 255, 170, 0.3);
+        }
+        
+        .button:active {
+            transform: translateY(0);
+        }
+        
+        .reset-btn {
+            background: linear-gradient(135deg, #ff3366 0%, #cc2255 100%);
+        }
+        
+        .reset-btn:hover {
+            background: linear-gradient(135deg, #ff5588 0%, #ff3366 100%);
+        }
+        
+        .monitor-screen {
+            flex: 1;
+            background: #000;
+            margin: 15px;
+            border-radius: 10px;
+            border: 2px solid #222244;
+            position: relative;
+            overflow: hidden;
+            box-shadow: 
+                0 0 50px rgba(0, 255, 170, 0.1),
+                inset 0 0 30px rgba(0, 255, 170, 0.05);
+        }
+        
+        .screen-content {
+            height: 100%;
+            position: relative;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .code-display {
+            font-size: 16px;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            font-family: 'SF Mono', 'Consolas', 'Monaco', monospace;
+            color: #00ff88;
+            opacity: 0.9;
+            transition: opacity 0.3s;
+        }
+        
+        .written-code {
+            min-height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        
+        .code-line {
+            margin: 3px 0;
+            min-height: 24px;
+            display: flex;
+            align-items: flex-start;
+        }
+        
+        .line-number {
+            color: #6666ff;
+            min-width: 40px;
+            text-align: right;
+            padding-right: 15px;
+            opacity: 0.5;
+            user-select: none;
+        }
+        
+        .code-text {
+            flex: 1;
+        }
+        
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 20px;
+            background: #00ffaa;
+            animation: blink 1s infinite;
+            vertical-align: middle;
+            margin-left: 2px;
+        }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+        
+        .comment {
+            color: #6666ff;
+            font-style: italic;
+        }
+        
+        .keyword {
+            color: #ff66ff;
+            font-weight: bold;
+        }
+        
+        .type {
+            color: #ffff66;
+        }
+        
+        .string {
+            color: #ff9966;
+        }
+        
+        .number {
+            color: #66ffff;
+        }
+        
+        .function {
+            color: #66ff66;
+        }
+        
+        .preprocessor {
+            color: #ff6666;
+        }
+        
+        .popup-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            display: none;
+            z-index: 100;
+            backdrop-filter: blur(5px);
+        }
+        
+        .popup {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(135deg, #1a1a2e 0%, #0f0f1f 100%);
+            border: 2px solid #ff3366;
+            border-radius: 15px;
+            padding: 30px;
+            width: 90%;
+            max-width: 700px;
+            z-index: 101;
+            box-shadow: 
+                0 0 100px rgba(255, 51, 102, 0.3),
+                inset 0 0 30px rgba(255, 51, 102, 0.1);
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.9);
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        
+        .popup.visible {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        
+        .popup-header {
+            color: #ff3366;
+            font-size: 1.8em;
+            text-align: center;
+            margin-bottom: 25px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 2px;
+            text-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
+        }
+        
+        .popup-content {
+            color: #ffffff;
+            font-size: 1.4em;
+            text-align: center;
+            padding: 30px;
+            background: rgba(34, 34, 68, 0.3);
+            border-radius: 10px;
+            border: 1px solid rgba(255, 51, 102, 0.3);
+            margin-bottom: 25px;
+            font-family: inherit;
+            animation: textGlow 3s infinite;
+        }
+        
+        @keyframes textGlow {
+            0%, 100% { text-shadow: 0 0 5px rgba(255, 255, 255, 0.3); }
+            50% { text-shadow: 0 0 15px rgba(255, 255, 255, 0.7); }
+        }
+        
+        .priority-tag {
+            color: #ff3366;
+            font-weight: bold;
+            font-size: 1.6em;
+            text-align: center;
+            margin-top: 20px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease-out;
+            text-shadow: 0 0 10px rgba(255, 51, 102, 0.5);
+        }
+        
+        .priority-tag.visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        .red-alert {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 0, 0, 0);
+            display: none;
+            z-index: 50;
+            pointer-events: none;
+        }
+        
+        .red-alert.active {
+            display: block;
+            animation: redPulse 1s infinite alternate;
+        }
+        
+        @keyframes redPulse {
+            0% { background: rgba(255, 0, 0, 0.1); }
+            100% { background: rgba(255, 0, 0, 0.3); }
+        }
+        
+        .status-bar {
+            background: rgba(17, 17, 42, 0.95);
+            padding: 12px 20px;
+            border-top: 1px solid #00ffaa;
+            display: flex;
+            justify-content: space-between;
+            flex-shrink: 0;
+            font-size: 0.9em;
+            backdrop-filter: blur(10px);
+        }
+        
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .status-label {
+            color: #6666ff;
+            opacity: 0.7;
+        }
+        
+        .status-value {
+            color: #00ffaa;
+            font-weight: bold;
+        }
+        
+        .processing-dots {
+            display: flex;
+            gap: 4px;
+            margin-left: 10px;
+        }
+        
+        .processing-dot {
+            width: 6px;
+            height: 6px;
+            background: #00ffaa;
+            border-radius: 50%;
+            animation: processing 1.4s infinite ease-in-out;
+        }
+        
+        .processing-dot:nth-child(1) { animation-delay: -0.32s; }
+        .processing-dot:nth-child(2) { animation-delay: -0.16s; }
+        .processing-dot:nth-child(3) { animation-delay: 0s; }
+        
+        @keyframes processing {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+        
+        .fade-overlay {
+            position: absolute;
+            left: 0;
+            right: 0;
+            height: 60px;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        .fade-top {
+            top: 0;
+            background: linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+        }
+        
+        .fade-bottom {
+            bottom: 0;
+            background: linear-gradient(to top, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%);
+        }
+        
+        .warning-icon {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            background: #ff3366;
+            border-radius: 50%;
+            margin-right: 10px;
+            position: relative;
+            animation: warningPulse 2s infinite;
+        }
+        
+        .warning-icon::before {
+            content: '!';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 14px;
+        }
+        
+        @keyframes warningPulse {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 51, 102, 0.7); }
+            50% { transform: scale(1.1); box-shadow: 0 0 0 10px rgba(255, 51, 102, 0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-dot"></div>
+                    <div class="logo-text">NeuralCore v3.7.2</div>
+                </div>
+                <div class="controls">
+                    <div class="control-group">
+                        <div class="control-label">Generation Speed:</div>
+                        <div class="slider-container">
+                            <input type="range" id="speedControl" min="1" max="10" value="5">
+                            <div class="time-display" id="speedValue">MEDIUM</div>
+                        </div>
+                    </div>
+                    <div class="control-group">
+                        <div class="control-label">Request Delay:</div>
+                        <div class="slider-container">
+                            <input type="range" id="timeControl" min="5" max="30" value="15">
+                            <div class="time-display" id="timeValue">15s</div>
+                        </div>
+                    </div>
+                    <button class="button" id="startBtn">▶ START GENERATION</button>
+                    <button class="button reset-btn" id="resetBtn">⟳ RESET</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="monitor-screen">
+            <div class="red-alert" id="redAlert"></div>
+            
+            <div class="popup-overlay" id="popupOverlay"></div>
+            <div class="popup" id="popup">
+                <div class="popup-header">
+                    <span class="warning-icon"></span>
+                    USER REQUEST DETECTED
+                </div>
+                <div class="popup-content" id="popupText">"I want a talking hamster"</div>
+                <div class="priority-tag" id="priorityTag"></div>
+            </div>
+            
+            <div class="fade-overlay fade-top"></div>
+            <div class="fade-overlay fade-bottom"></div>
+            
+            <div class="screen-content" id="screenContent">
+                <div class="code-display">
+                    <div class="written-code" id="writtenCode">
+                        <!-- Pre-written code will be inserted here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">STATUS:</span>
+                <span class="status-value" id="status">READY</span>
+                <div class="processing-dots" id="processingDots" style="display: none;">
+                    <div class="processing-dot"></div>
+                    <div class="processing-dot"></div>
+                    <div class="processing-dot"></div>
+                </div>
+            </div>
+            <div class="status-item">
+                <span class="status-label">NEURAL NET:</span>
+                <span class="status-value" id="aiStatus">ACTIVE</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">PROCESSOR LOAD:</span>
+                <span class="status-value" id="processor">24%</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">TIME:</span>
+                <span class="status-value">⏱ <span id="timer">0</span>s</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // DOM Elements
+            const writtenCode = document.getElementById('writtenCode');
+            const screenContent = document.getElementById('screenContent');
+            const speedControl = document.getElementById('speedControl');
+            const timeControl = document.getElementById('timeControl');
+            const startBtn = document.getElementById('startBtn');
+            const resetBtn = document.getElementById('resetBtn');
+            const timerDisplay = document.getElementById('timer');
+            const statusDisplay = document.getElementById('status');
+            const aiStatusDisplay = document.getElementById('aiStatus');
+            const processorDisplay = document.getElementById('processor');
+            const processingDots = document.getElementById('processingDots');
+            const popupOverlay = document.getElementById('popupOverlay');
+            const popup = document.getElementById('popup');
+            const popupText = document.getElementById('popupText');
+            const priorityTag = document.getElementById('priorityTag');
+            const redAlert = document.getElementById('redAlert');
+            const speedValue = document.getElementById('speedValue');
+            const timeValue = document.getElementById('timeValue');
+            
+            // State variables
+            let timer = 0;
+            let timerInterval;
+            let isRunning = false;
+            let codeLines = [];
+            let visibleStartLine = 20; // Start from line 20 to simulate mid-code
+            let currentLine = 0;
+            let charIndex = 0;
+            let requestShown = false;
+            let requestTime;
+            let writeInterval;
+            
+            // Code base (mixed from provided files with obfuscated names)
+            const cppCode = [
+                '#include <iostream>',
+                '#include <string>',
+                '#include <stdexcept>',
+                '#include <vector>',
+                '',
+                'using namespace std;',
+                '',
+                'class NameError : public runtime_error {',
+                'public:',
+                '    NameError(const string& msg) : runtime_error(msg) {}',
+                '};',
+                '',
+                'class DepError : public logic_error {',
+                'public:',
+                '    DepError(const string& msg) : logic_error(msg) {}',
+                '};',
+                '',
+                'class CoreObject {',
+                'private:',
+                '    static int instanceCount;',
+                'protected:',
+                '    string obj_name;',
+                '    string obj_type;',
+                '    string obj_date;',
+                '',
+                'public:',
+                '    CoreObject() : obj_name(""), obj_type(""), obj_date("") {',
+                '        instanceCount++;',
+                '    }',
+                '',
+                '    CoreObject(string name, string type = "", string date = "") :',
+                '        obj_name(name), obj_type(type), obj_date(date) {',
+                '        if (name.empty()) throw NameError("Name cannot be empty");',
+                '        instanceCount++;',
+                '    }',
+                '',
+                '    CoreObject(const CoreObject& other) : obj_name(other.obj_name),',
+                '        obj_type(other.obj_type), obj_date(other.obj_date) {',
+                '        instanceCount++;',
+                '    }',
+                '',
+                '    virtual ~CoreObject() {',
+                '        instanceCount--;',
+                '    }',
+                '',
+                '    virtual void process() = 0;',
+                '',
+                '    friend ostream& operator<<(ostream& out, CoreObject& obj) {',
+                '        out << "Name: " << obj.obj_name << endl;',
+                '        out << "Type: " << obj.obj_type << endl;',
+                '        out << "Date: " << obj.obj_date << endl;',
+                '        return out;',
+                '    }',
+                '',
+                '    static int getInstanceCount() { return instanceCount; }',
+                '    string getName() { return obj_name; }',
+                '    string getType() { return obj_type; }',
+                '    string getDate() { return obj_date; }',
+                '',
+                '    void setName(const string& name) {',
+                '        if (name.empty()) throw NameError("Name cannot be empty");',
+                '        this->obj_name = name;',
+                '    }',
+                '',
+                '    void setType(const string& type) { this->obj_type = type; }',
+                '    void setDate(const string& date) { this->obj_date = date; }',
+                '',
+                '    bool operator<(const CoreObject& other) {',
+                '        return obj_name < other.obj_name;',
+                '    }',
+                '',
+                '    bool operator>(const CoreObject& other) {',
+                '        return obj_name > other.obj_name;',
+                '    }',
+                '};',
+                'int CoreObject::instanceCount = 0;',
+                '',
+                'class ActiveObject : public CoreObject {',
+                'private:',
+                '    string activation_date;',
+                '',
+                'public:',
+                '    ActiveObject() : CoreObject() {}',
+                '',
+                '    ActiveObject(string n, string t, string d, string ad) :',
+                '        CoreObject(n, t, d), activation_date(ad) {',
+                '        if (ad.empty()) throw NameError("Activation date cannot be empty");',
+                '    }',
+                '',
+                '    ~ActiveObject() {}',
+                '',
+                '    void process() override {',
+                '        cout << "Processing active object: " << obj_name << endl;',
+                '    }',
+                '',
+                '    friend ostream& operator<<(ostream& out, const ActiveObject& ao) {',
+                '        out << "Name: " << ao.obj_name << endl;',
+                '        out << "Type: " << ao.obj_type << endl;',
+                '        out << "Date: " << ao.obj_date << endl;',
+                '        out << "Activation Date: " << ao.activation_date << endl;',
+                '        return out;',
+                '    }',
+                '',
+                '    bool operator<(const ActiveObject& other) {',
+                '        return obj_name < other.obj_name;',
+                '    }',
+                '',
+                '    bool operator>(const ActiveObject& other) {',
+                '        return obj_name > other.obj_name;',
+                '    }',
+                '};',
+                '',
+                'class InactiveObject : public CoreObject {',
+                'private:',
+                '    string deactivation_date;',
+                '',
+                'public:',
+                '    InactiveObject() : CoreObject() {}',
+                '',
+                '    InactiveObject(string n, string t, string d, string dd) :',
+                '        CoreObject(n, t, d), deactivation_date(dd) {',
+                '        if (dd.empty()) throw NameError("Deactivation date cannot be empty");',
+                '    }',
+                '',
+                '    ~InactiveObject() {}',
+                '',
+                '    void process() override {',
+                '        cout << "Processing inactive object: " << obj_name << endl;',
+                '    }',
+                '',
+                '    friend ostream& operator<<(ostream& out, const InactiveObject& io) {',
+                '        out << "Name: " << io.obj_name << endl;',
+                '        out << "Type: " << io.obj_type << endl;',
+                '        out << "Date: " << io.obj_date << endl;',
+                '        out << "Deactivation Date: " << io.deactivation_date << endl;',
+                '        return out;',
+                '    }',
+                '',
+                '    bool operator<(const InactiveObject& other) {',
+                '        return obj_name < other.obj_name;',
+                '    }',
+                '',
+                '    bool operator>(const InactiveObject& other) {',
+                '        return obj_name > other.obj_name;',
+                '    }',
+                '};',
+                '',
+                'template<typename T>',
+                'class DataContainer {',
+                'private:',
+                '    T* dataArray;',
+                '    int containerSize = 0;',
+                '',
+                'public:',
+                '    DataContainer() {}',
+                '',
+                '    DataContainer(int size) {',
+                '        if (size < 0)',
+                '            throw invalid_argument("Size cannot be negative");',
+                '',
+                '        try {',
+                '            dataArray = new T[size];',
+                '            containerSize = size;',
+                '        }',
+                '        catch (const bad_alloc& e) {',
+                '            throw runtime_error("Memory allocation failed");',
+                '        }',
+                '    }',
+                '',
+                '    ~DataContainer() {',
+                '        delete[] dataArray;',
+                '    }',
+                '',
+                '    T* getArray() const { return dataArray; }',
+                '    int getSize() const { return containerSize; }',
+                '',
+                '    void addElement(const T& element, const int index = 0) {',
+                '        if (index < 0) throw out_of_range("Index cannot be negative");',
+                '        if (index > containerSize) throw out_of_range("Index out of bounds");',
+                '',
+                '        try {',
+                '            T* newArray = new T[containerSize + 1];',
+                '',
+                '            for (int i = 0; i < index; ++i) {',
+                '                newArray[i] = dataArray[i];',
+                '            }',
+                '            newArray[index] = element;',
+                '            for (int i = index; i < containerSize; ++i) {',
+                '                newArray[i + 1] = dataArray[i];',
+                '            }',
+                '',
+                '            delete[] dataArray;',
+                '            dataArray = newArray;',
+                '            ++containerSize;',
+                '        }',
+                '        catch (const bad_alloc& e) {',
+                '            throw runtime_error("Memory allocation failed during add");',
+                '        }',
+                '    }',
+                '',
+                '    void removeElement(const int index) {',
+                '        if (containerSize == 0) throw logic_error("Container is empty");',
+                '        if (index < 0) throw out_of_range("Index cannot be negative");',
+                '        if (index >= containerSize) throw out_of_range("Index out of bounds");',
+                '',
+                '        try {',
+                '            T* newArray = new T[containerSize - 1];',
+                '',
+                '            for (int i = 0; i < index; ++i) {',
+                '                newArray[i] = dataArray[i];',
+                '            }',
+                '            for (int i = index + 1; i < containerSize; ++i) {',
+                '                newArray[i - 1] = dataArray[i];',
+                '            }',
+                '',
+                '            delete[] dataArray;',
+                '            dataArray = newArray;',
+                '            --containerSize;',
+                '        }',
+                '        catch (const bad_alloc& e) {',
+                '            throw runtime_error("Memory allocation failed during remove");',
+                '        }',
+                '    }',
+                '',
+                '    void display() {',
+                '        if (containerSize == 0) throw logic_error("Container is empty");',
+                '',
+                '        for (int i = 0; i < containerSize; ++i) {',
+                '            cout << dataArray[i] << endl;',
+                '        }',
+                '    }',
+                '',
+                '    void clear() {',
+                '        delete[] dataArray;',
+                '        dataArray = nullptr;',
+                '        containerSize = 0;',
+                '    }',
+                '',
+                '    T& operator[](int index) const {',
+                '        if (index < 0 || index >= containerSize)',
+                '            throw out_of_range("Index out of bounds");',
+                '        return dataArray[index];',
+                '    }',
+                '',
+                '    T findMin() {',
+                '        if (containerSize == 0) throw logic_error("Container is empty");',
+                '',
+                '        T minVal = dataArray[0];',
+                '        for (int i = 1; i < containerSize; ++i) {',
+                '            if (dataArray[i] < minVal) minVal = dataArray[i];',
+                '        }',
+                '        return minVal;',
+                '    }',
+                '',
+                '    T findMax() {',
+                '        if (containerSize == 0) throw logic_error("Container is empty");',
+                '',
+                '        T maxVal = dataArray[0];',
+                '        for (int i = 1; i < containerSize; ++i) {',
+                '            if (dataArray[i] > maxVal) maxVal = dataArray[i];',
+                '        }',
+                '        return maxVal;',
+                '    }',
+                '};',
+                '',
+                'template<>',
+                'CoreObject* DataContainer<CoreObject*>::findMin() {',
+                '    if (containerSize == 0) throw logic_error("Container is empty");',
+                '',
+                '    CoreObject* minObj = dataArray[0];',
+                '    for (int i = 1; i < containerSize; ++i) {',
+                '        if (dataArray[i]->getName() < minObj->getName()) {',
+                '            minObj = dataArray[i];',
+                '        }',
+                '    }',
+                '    return minObj;',
+                '}',
+                '',
+                'template<>',
+                'CoreObject* DataContainer<CoreObject*>::findMax() {',
+                '    if (containerSize == 0) throw logic_error("Container is empty");',
+                '',
+                '    CoreObject* maxObj = dataArray[0];',
+                '    for (int i = 1; i < containerSize; ++i) {',
+                '        if (dataArray[i]->getName() > maxObj->getName()) {',
+                '            maxObj = dataArray[i];',
+                '        }',
+                '    }',
+                '    return maxObj;',
+                '}',
+                '',
+                'class CoreModule {',
+                'private:',
+                '    static int moduleCounter;',
+                '    string moduleName;',
+                '    int moduleID;',
+                '    DataContainer<CoreObject*> objects;',
+                '',
+                'public:',
+                '    CoreModule(string name, int id) : moduleName(name), moduleID(id) {',
+                '        if (name.empty()) throw DepError("Module name cannot be empty");',
+                '        if (id < 1000 || id > 9999) throw DepError("Invalid module ID");',
+                '    }',
+                '',
+                '    CoreModule(CoreModule& other) : moduleName(other.moduleName),',
+                '        moduleID(other.moduleID) {',
+                '',
+                '        try {',
+                '            for (int i = 0; i < other.objects.getSize(); ++i) {',
+                '                CoreObject* original = other.objects[i];',
+                '                CoreObject* copy = nullptr;',
+                '',
+                '                if (ActiveObject* ao = dynamic_cast<ActiveObject*>(original)) {',
+                '                    copy = new ActiveObject(*ao);',
+                '                }',
+                '                else if (InactiveObject* io = dynamic_cast<InactiveObject*>(original)) {',
+                '                    copy = new InactiveObject(*io);',
+                '                }',
+                '',
+                '                if (copy) {',
+                '                    objects.addElement(copy);',
+                '                    ++moduleCounter;',
+                '                }',
+                '            }',
+                '        }',
+                '        catch (...) {',
+                '            clearModule();',
+                '            throw;',
+                '        }',
+                '    }',
+                '',
+                '    ~CoreModule() {',
+                '        clearModule();',
+                '    }',
+                '',
+                '    DataContainer<CoreObject*> getObjects() { return objects; }',
+                '    int getSize() const { return objects.getSize(); }',
+                '    static int getModuleCount() { return moduleCounter; }',
+                '',
+                '    void addObject(CoreObject* obj, const int index = 0) {',
+                '        if (!obj) throw DepError("Cannot add null object");',
+                '        objects.addElement(obj, index);',
+                '        ++moduleCounter;',
+                '    }',
+                '',
+                '    void removeObject(const int index) {',
+                '        objects.removeElement(index);',
+                '        --moduleCounter;',
+                '    }',
+                '',
+                '    void clearModule() {',
+                '        for (int i = 0; i < objects.getSize(); ++i) {',
+                '            delete objects[i];',
+                '        }',
+                '        objects.clear();',
+                '        moduleCounter = 0;',
+                '    }',
+                '',
+                '    CoreModule& operator+(CoreObject* other) {',
+                '        addObject(other);',
+                '        return *this;',
+                '    }',
+                '',
+                '    CoreModule& operator++() {',
+                '        addObject(new ActiveObject());',
+                '        return *this;',
+                '    }',
+                '',
+                '    CoreModule operator++(int) {',
+                '        CoreModule temp(*this);',
+                '        addObject(new ActiveObject());',
+                '        return temp;',
+                '    }',
+                '',
+                '    CoreObject* operator[](const int index) const {',
+                '        return objects[index];',
+                '    }',
+                '',
+                '    void display() {',
+                '        cout << "Module: " << moduleName << endl;',
+                '        cout << "Module ID: " << moduleID << endl;',
+                '        cout << "Objects in module:" << endl;',
+                '        for (int i = 0; i < objects.getSize(); ++i) {',
+                '            objects[i]->process();',
+                '            cout << "-----------------" << endl;',
+                '        }',
+                '    }',
+                '',
+                '    friend ostream& operator<<(ostream& out, const CoreModule& module) {',
+                '        out << "\\n-----------------" << endl;',
+                '        out << "Module: " << module.moduleName << endl;',
+                '        out << "Module ID: " << module.moduleID << endl;',
+                '        out << "Objects in module:" << endl;',
+                '        for (int i = 0; i < module.getSize(); ++i) {',
+                '            if (module[i] != nullptr) {',
+                '                out << *module[i];',
+                '                out << "-----------------" << endl;',
+                '            }',
+                '        }',
+                '        return out;',
+                '    }',
+                '};',
+                'int CoreModule::moduleCounter = 0;',
+                '',
+                'void demonstrateExceptionHandling() {',
+                '    try {',
+                '        cout << "\\nDemonstrating exception handling:" << endl;',
+                '        DataContainer<int> container;',
+                '        container.addElement(10);',
+                '        container.addElement(20);',
+                '',
+                '        cout << "Attempting to access non-existent element:" << endl;',
+                '        cout << container[5] << endl;',
+                '    }',
+                '    catch (const out_of_range& e) {',
+                '        cout << "Caught exception: " << e.what() << endl;',
+                '    }',
+                '    catch (...) {',
+                '        cout << "Caught unknown exception" << endl;',
+                '    }',
+                '}',
+                '',
+                'int main() {',
+                '    setlocale(LC_ALL, "Russian");',
+                '',
+                '    try {',
+                '        cout << "=== Demonstration of Exception Handling ===" << endl;',
+                '',
+                '        try {',
+                '            DataContainer<int> container(-5);',
+                '        }',
+                '        catch (const invalid_argument& e) {',
+                '            cout << "Caught invalid_argument: " << e.what() << endl;',
+                '        }',
+                '',
+                '        try {',
+                '            DataContainer<int> container;',
+                '            cout << container.findMax();',
+                '        }',
+                '        catch (const logic_error& e) {',
+                '            cout << "Caught logic_error: " << e.what() << endl;',
+                '        }',
+                '',
+                '        try {',
+                '            CoreObject* obj = new ActiveObject("", "TypeA", "2023-10-01", "2024-01-01");',
+                '        }',
+                '        catch (const NameError& e) {',
+                '            cout << "Caught NameError: " << e.what() << endl;',
+                '        }',
+                '',
+                '        try {',
+                '            CoreModule module("", 2023);',
+                '        }',
+                '        catch (const DepError& e) {',
+                '            cout << "Caught DepError: " << e.what() << endl;',
+                '        }',
+                '',
+                '        try {',
+                '            throw 42;',
+                '        }',
+                '        catch (int e) {',
+                '            cout << "Caught integer: " << e << endl;',
+                '        }',
+                '',
+                '        try {',
+                '            throw string("String error");',
+                '        }',
+                '        catch (const string& e) {',
+                '            cout << "Caught string: " << e << endl;',
+                '        }',
+                '',
+                '        try {',
+                '            throw runtime_error("Unknown runtime error");',
+                '        }',
+                '        catch (...) {',
+                '            cout << "Caught unknown exception" << endl;',
+                '        }',
+                '',
+                '        demonstrateExceptionHandling();',
+                '',
+                '        CoreModule module1("Processing", 2048);',
+                '        module1.addObject(new ActiveObject("Object1", "Processor", "2023-09-20", "2024-07-20"));',
+                '',
+                '        try {',
+                '            module1.addObject(new ActiveObject("", "Processor", "2023-09-20", "2024-07-20"));',
+                '        }',
+                '        catch (const NameError& e) {',
+                '            cout << "Error adding object: " << e.what() << endl;',
+                '        }',
+                '        catch (const exception& e) {',
+                '            cout << "Standard error: " << e.what() << endl;',
+                '        }',
+                '',
+                '        cout << "\\nCurrent module state:" << endl;',
+                '        cout << module1;',
+                '',
+                '    }',
+                '    catch (const exception& e) {',
+                '        cerr << "Main exception handler: " << e.what() << endl;',
+                '    }',
+                '    catch (...) {',
+                '        cerr << "Main unknown exception handler" << endl;',
+                '    }',
+                '',
+                '    cout << "\\nProgram completed" << endl;',
+                '    return 0;',
+                '}'
+            ];
+            
+            // Initialize the code display with pre-written code
+            function init() {
+                codeLines = [...cppCode];
+                currentLine = visibleStartLine;
+                charIndex = 0;
+                timer = 0;
+                requestShown = false;
+                requestTime = parseInt(timeControl.value);
+                
+                // Clear and setup code display
+                writtenCode.innerHTML = '';
+                
+                // Add pre-written code (lines before visibleStartLine)
+                for (let i = 0; i < visibleStartLine; i++) {
+                    const lineDiv = document.createElement('div');
+                    lineDiv.className = 'code-line';
+                    lineDiv.innerHTML = `<span class="line-number">${i + 1}</span><span class="code-text">${highlightSyntax(cppCode[i])}</span>`;
+                    writtenCode.appendChild(lineDiv);
+                }
+                
+                // Add current line indicator
+                addCurrentLine();
+                
+                popupOverlay.style.display = 'none';
+                popup.classList.remove('visible');
+                priorityTag.classList.remove('visible');
+                priorityTag.textContent = '';
+                redAlert.classList.remove('active');
+                statusDisplay.textContent = 'READY';
+                aiStatusDisplay.textContent = 'ACTIVE';
+                aiStatusDisplay.style.color = '#00ffaa';
+                processorDisplay.textContent = '24%';
+                processorDisplay.style.color = '#00ffaa';
+                timerDisplay.textContent = '0';
+                processingDots.style.display = 'none';
+                
+                clearInterval(timerInterval);
+                if (writeInterval) clearInterval(writeInterval);
+                isRunning = false;
+                startBtn.textContent = '▶ START GENERATION';
+                
+                // Auto-scroll to show current line
+                setTimeout(() => {
+                    screenContent.scrollTop = (visibleStartLine - 10) * 24;
+                }, 100);
+            }
+            
+            // Add current line with cursor
+            function addCurrentLine() {
+                const lineDiv = document.createElement('div');
+                lineDiv.className = 'code-line';
+                lineDiv.id = 'currentLine';
+                lineDiv.innerHTML = `<span class="line-number">${currentLine + 1}</span><span class="code-text" id="currentLineText"></span><span class="cursor"></span>`;
+                writtenCode.appendChild(lineDiv);
+            }
+            
+            // Syntax highlighting
+            function highlightSyntax(text) {
+                if (!text) return '';
+                
+                let highlighted = text;
+                
+                // Comments
+                if (text.includes('//')) {
+                    const parts = text.split('//');
+                    highlighted = `<span class="code-text">${parts[0]}</span><span class="comment">//${parts[1]}</span>`;
+                    return highlighted;
+                }
+                
+                // Keywords
+                const keywords = [
+                    'class', 'public', 'private', 'protected', 'void', 'int', 'double',
+                    'float', 'char', 'string', 'bool', 'vector', 'unique_ptr', 'make_unique',
+                    'auto', 'const', 'virtual', 'override', 'for', 'if', 'else', 'return',
+                    'cout', 'endl', 'using', 'namespace', 'std', 'include', 'override',
+                    'template', 'typename', 'static', 'new', 'delete', 'throw', 'try',
+                    'catch', 'throw', 'operator', 'friend', 'virtual', 'override', 'final'
+                ];
+                
+                keywords.forEach(keyword => {
+                    const regex = new RegExp(`\\b${keyword}\\b`, 'g');
+                    highlighted = highlighted.replace(regex, `<span class="keyword">${keyword}</span>`);
+                });
+                
+                // Types
+                const types = ['CoreObject', 'ActiveObject', 'InactiveObject', 'DataContainer', 
+                             'CoreModule', 'NameError', 'DepError', 'ostream', 'istream'];
+                types.forEach(type => {
+                    const regex = new RegExp(`\\b${type}\\b`, 'g');
+                    highlighted = highlighted.replace(regex, `<span class="type">${type}</span>`);
+                });
+                
+                // Functions
+                const functions = ['main', 'cout', 'cin', 'endl', 'getline', 'push_back',
+                                 'size', 'empty', 'clear', 'addElement', 'removeElement'];
+                functions.forEach(func => {
+                    const regex = new RegExp(`\\b${func}\\b`, 'g');
+                    highlighted = highlighted.replace(regex, `<span class="function">${func}</span>`);
+                });
+                
+                // Preprocessor
+                if (text.startsWith('#')) {
+                    highlighted = `<span class="preprocessor">${text}</span>`;
+                }
+                
+                // Strings
+                highlighted = highlighted.replace(/"[^"]*"/g, '<span class="string">$&</span>');
+                
+                // Numbers
+                highlighted = highlighted.replace(/\b\d+\b/g, '<span class="number">$&</span>');
+                
+                return highlighted;
+            }
+            
+            // Write code character by character
+            function writeCode() {
+                if (currentLine >= codeLines.length) {
+                    statusDisplay.textContent = 'COMPLETED';
+                    clearInterval(writeInterval);
+                    isRunning = false;
+                    startBtn.textContent = '▶ START GENERATION';
+                    return;
+                }
+                
+                const line = codeLines[currentLine];
+                const currentLineText = document.getElementById('currentLineText');
+                
+                if (charIndex >= line.length) {
+                    // Move to next line
+                    currentLine++;
+                    charIndex = 0;
+                    
+                    if (currentLine >= codeLines.length) return;
+                    
+                    // Update line number and create new line
+                    const oldLine = document.getElementById('currentLine');
+                    oldLine.id = '';
+                    
+                    addCurrentLine();
+                    
+                    // Auto-scroll
+                    const lineHeight = 24;
+                    const targetScroll = (currentLine - 10) * lineHeight;
+                    screenContent.scrollTop = Math.max(0, targetScroll);
+                } else {
+                    // Add character
+                    const char = line.charAt(charIndex);
+                    currentLineText.innerHTML += highlightSyntax(char);
+                    charIndex++;
+                    
+                    // Update processor load
+                    const load = 24 + Math.floor(Math.random() * 10);
+                    processorDisplay.textContent = load + '%';
+                    processorDisplay.style.color = load > 30 ? '#ff9966' : '#00ffaa';
+                }
+                
+                // Check for request time
+                if (!requestShown && timer >= requestTime) {
+                    showRequest();
+                }
+            }
+            
+            // Show the request popup with thinking effect
+            function showRequest() {
+                requestShown = true;
+                statusDisplay.textContent = 'PROCESSING REQUEST';
+                processingDots.style.display = 'flex';
+                aiStatusDisplay.textContent = 'ANALYZING...';
+                aiStatusDisplay.style.color = '#ff9966';
+                
+                // First show popup
+                setTimeout(() => {
+                    popupOverlay.style.display = 'block';
+                    popup.classList.add('visible');
+                    
+                    // Thinking effect - blinking
+                    let blinkCount = 0;
+                    const blinkInterval = setInterval(() => {
+                        if (blinkCount >= 6) { // 3 blinks
+                            clearInterval(blinkInterval);
+                            
+                            // Show priority tag
+                            setTimeout(() => {
+                                priorityTag.textContent = 'TEST_CASE_ALPHA. PRIORITY: MAXIMUM';
+                                priorityTag.classList.add('visible');
+                                
+                                // Activate red alert
+                                setTimeout(() => {
+                                    redAlert.classList.add('active');
+                                    aiStatusDisplay.textContent = 'SPECIAL MODE: TEST_CASE_ALPHA';
+                                    aiStatusDisplay.style.color = '#ff3366';
+                                    statusDisplay.textContent = 'HIGH PRIORITY TASK';
+                                    processingDots.style.display = 'none';
+                                }, 1000);
+                            }, 500);
+                        } else {
+                            popupText.style.opacity = popupText.style.opacity === '0.3' ? '1' : '0.3';
+                            blinkCount++;
+                        }
+                    }, 300);
+                }, 500);
+            }
+            
+            // Event Listeners
+            startBtn.addEventListener('click', function() {
+                if (isRunning) {
+                    // Pause
+                    clearInterval(writeInterval);
+                    clearInterval(timerInterval);
+                    isRunning = false;
+                    startBtn.textContent = '▶ CONTINUE';
+                    statusDisplay.textContent = 'PAUSED';
+                    processingDots.style.display = 'none';
+                } else {
+                    // Start/Continue
+                    isRunning = true;
+                    startBtn.textContent = '⏸ PAUSE';
+                    statusDisplay.textContent = 'GENERATING CODE';
+                    
+                    // Timer
+                    timerInterval = setInterval(() => {
+                        timer++;
+                        timerDisplay.textContent = timer;
+                    }, 1000);
+                    
+                    // Writing speed
+                    const speed = 11 - parseInt(speedControl.value);
+                    writeInterval = setInterval(writeCode, speed * 10);
+                }
+            });
+            
+            resetBtn.addEventListener('click', init);
+            
+            // Update slider values
+            speedControl.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                const speeds = ['VERY SLOW', 'SLOW', 'MODERATE', 'FAST', 'VERY FAST'];
+                const index = Math.min(Math.floor(value / 2), 4);
+                speedValue.textContent = speeds[index];
+            });
+            
+            timeControl.addEventListener('input', function() {
+                const value = parseInt(this.value);
+                timeValue.textContent = value + 's';
+                requestTime = value;
+            });
+            
+            // Initialize
+            init();
+            
+            // Set initial slider values
+            speedControl.dispatchEvent(new Event('input'));
+            timeControl.dispatchEvent(new Event('input'));
+        });
+    </script>
+</body>
+</html>
